@@ -695,7 +695,7 @@ class Dimensions(activity.Activity):
                       icon='score-copy')
 
         add_section(help_box, _('Tools'), icon='view-source')
-        add_section(help_box, _('Import image cards'), icon='image-tools')
+        # add_section(help_box, _('Import image cards'), icon='image-tools')
         # add_paragraph(help_box, PROMPT_DICT['custom'], icon='new-custom-game')
         add_section(help_box, _('Edit word lists.'), icon='word-tools')
 
