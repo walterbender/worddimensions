@@ -1,9 +1,9 @@
 [Activity]
-name = Dimensions
+name = Word Dimensions
 activity_version = 51
 license = GPLv3
-bundle_id = org.sugarlabs.Dimensions
+bundle_id = org.sugarlabs.WordDimensions
 exec = sugar-activity Dimensions.Dimensions
 icon = activity-dimensions
 show_launcher = yes
-summary = a pattern-matching game
+summary = a word pattern-matching game

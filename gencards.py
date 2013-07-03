@@ -828,11 +828,11 @@ def generate_word_card(shape, color, number, fill, scale):
     svg = SVG()
     svg._set_scale(scale)
     if number == 0:
-        _stroke = DARK_COLOR[color]
+        _stroke = COLOR_PAIRS[color][1]  # DARK_COLOR[color]
     elif number == 1:
         _stroke = COLOR_PAIRS[color][1]
     else:
-        _stroke = COLOR_PAIRS[color][0]
+        _stroke = COLOR_PAIRS[color][1]  # COLOR_PAIRS[color][0]
     if fill == 0:
         _fill = COLOR_PAIRS[color][1]
     elif fill == 1:
@@ -864,6 +864,7 @@ def generate_selected_card(scale):
     svg_string = svg._header()
     svg_string += svg._footer()
     return svg_string
+
 
 def generate_label(width, height):
     svg = SVG()
