@@ -10,7 +10,6 @@
 # along with this library; if not, write to the Free Software
 # Foundation, 51 Franklin Street, Suite 500 Boston, MA 02110-1335 USA
 
-
 from gi.repository import Gtk
 from gi.repository import Gdk
 from gi.repository import GObject
@@ -33,23 +32,23 @@ from sugar3.presence import presenceservice
 from sugar3.presence.tubeconn import TubeConnection
 
 from gettext import gettext as _
+
 import os.path
+
 import logging
 _logger = logging.getLogger('dimensions-activity')
+
 import json
 from json import load as jload
 from json import dump as jdump
-
 from StringIO import StringIO
 
 from toolbar_utils import (radio_factory, button_factory, separator_factory)
-
 from constants import (DECKSIZE, PRODUCT, HASH, ROMAN, WORD, CHINESE, MAYAN,
                        INCAN, DOTS, STAR, DICE, LINES, DEAL)
 from helpbutton import (HelpButton, add_section, add_paragraph, help_windows,
                         help_buttons)
 from game import Game
-
 
 help_palettes = {}
 
@@ -65,7 +64,7 @@ LEVEL_BUTTONS = {}
 
 SERVICE = 'org.sugarlabs.Dimensions'
 IFACE = SERVICE
-PATH = '/org/augarlabs/Dimensions'
+PATH = '/org/sugarlabs/Dimensions'
 
 PROMPT_DICT = {'pattern': _('New pattern game'),
                'number': _('New number game'),
