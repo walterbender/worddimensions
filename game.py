@@ -141,6 +141,7 @@ class Game():
         self.custom_paths = [None, None, None, None, None, None, None, None,
                              None]
         self._sprites = Sprites(self._canvas)
+        self._sprites.set_delay(True)
         self._press = None
         self.matches = 0
         self.robot_matches = 0
@@ -356,6 +357,8 @@ class Game():
 
         for i in range((ROW - 1) * COL):
             self._smiley[i].hide_card()
+
+        self._sprites.draw_all()
 
     def _sharing(self):
         ''' Are we sharing? '''
