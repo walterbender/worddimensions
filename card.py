@@ -1,4 +1,4 @@
-#Copyright (c) 2009,10 Walter Bender
+#Copyright (c) 2009-14 Walter Bender
 #Copyright (c) 2009 Michele Pratusevich
 
 # This program is free software; you can redistribute it and/or modify
@@ -10,13 +10,12 @@
 # along with this library; if not, write to the Free Software
 # Foundation, 51 Franklin Street, Suite 500 Boston, MA 02110-1335 USA
 
-from gi.repository import Gdk, GdkPixbuf
+from gi.repository import GdkPixbuf
 
 import logging
 _logger = logging.getLogger('visualmatch-activity')
 
-from constants import SELECTMASK, MATCHMASK, COLORS, NUMBER, FILLS, \
-    CARD_WIDTH, CARD_HEIGHT
+from constants import COLORS, NUMBER, FILLS, CARD_WIDTH, CARD_HEIGHT
 
 from sprites import Sprite
 
@@ -57,10 +56,10 @@ class Card:
         self.spr.set_label_attributes(self._scale * 24)
         self.spr.set_label('')
 
-    def show_card(self):
+    def show_card(self, layer=2000):
         ''' Show the card '''
         if self.spr is not None:
-            self.spr.set_layer(2000)
+            self.spr.set_layer(layer)
             self.spr.draw()
 
     def hide_card(self):

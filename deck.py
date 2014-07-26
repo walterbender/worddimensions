@@ -9,7 +9,7 @@
 # along with this library; if not, write to the Free Software
 # Foundation, 51 Franklin Street, Suite 500 Boston, MA 02110-1335 USA
 
-
+import os
 from random import randrange
 
 from constants import HIGH, MEDIUM, LOW, FILLS, SHAPES, NUMBER, COLORS, \
@@ -17,6 +17,13 @@ from constants import HIGH, MEDIUM, LOW, FILLS, SHAPES, NUMBER, COLORS, \
 from card import Card
 from gencards import generate_pattern_card, generate_number_card, \
                      generate_word_card
+
+try:
+    from sugar3.activity import activity
+    bundle_path = activity.get_bundle_path()
+except:
+    bundle_path = os.path.expanduser(os.path.join('~', 'Activities',
+                                                  'WordDimensions.activity'))
 
 
 class Deck:
@@ -32,6 +39,7 @@ class Deck:
         """ Create the deck of cards. 'lists' is either a list of
             words or paths"""
 
+        print lists
         # If level is 'simple', only generate one fill type
         shape_range = SHAPES
         color_range = COLORS
@@ -77,18 +85,40 @@ class Deck:
                 sprites=sprites, attributes=[shape, color, num, fill],
                 file_path=lists[index])
         else:
-            self.cards[i].create(
-                generate_word_card(shape, color, num, fill, self._scale),
-                sprites=sprites, attributes=[shape, color, num, fill])
-            self.cards[i].spr.set_label(lists[shape][num])
+            # shape == category: animal, food, orb
+            # color == color
+            # num == which in category
+            # fill == ???
             if fill == 0:
-                self.cards[i].spr.set_font('Sans Bold')
+                path = os.path.join(bundle_path, 'pictures',
+                                    lists[shape][num] + '.png')
+            elif fill == 1:
+                path = os.path.join(bundle_path, 'pictures',
+                                    lists[shape][num] + '-gray.png')
+            else:
+                path = None
+            print i, shape, color, num, fill, lists[shape][num]
+            print path
+            self.cards[i].create(
+                generate_word_card(shape, color, num, fill, self._scale,
+                                   path=path),
+                sprites=sprites, attributes=[shape, color, num, fill])
+            if fill == 2:
+                self.cards[i].spr.set_label(lists[shape][num])
                 self.cards[i].spr.set_label_color(COLOR_PAIRS[color][0])
             elif fill == 1:
+                self.cards[i].spr.set_label(lists[shape][num])
+                self.cards[i].spr.set_label_color('white')
+            '''
+            if fill == 0:
+                self.cards[i].spr.set_label_color(COLOR_PAIRS[color][0])
+            elif fill == 1:
+                self.cards[i].spr.set_font('Sans Bold')
                 self.cards[i].spr.set_label_color(COLOR_PAIRS[color][1])
             elif fill == 2:
                 self.cards[i].spr.set_font('Sans Italic')
                 self.cards[i].spr.set_label_color(COLOR_PAIRS[color][1])
+            '''
         return i + 1
 
     def shuffle(self):

@@ -124,7 +124,7 @@ class Dimensions(activity.Activity):
     def _load_new_game(self, card_type=None):
         if not self.ready_to_play:
             return
-        self._notify_new_game(self._prompt)
+        # self._notify_new_game(self._prompt)
         # a brief pause to give alert time to load
         timeout = GObject.timeout_add(200, self._new_game, card_type)
 
