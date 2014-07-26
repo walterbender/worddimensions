@@ -1,6 +1,7 @@
 56
 
-* Added pictures to go with words
+* Added pictures to go with words (Note: this temporarily breaks the
+  custom-card feature)
 * Refactoring of layout
 * New smiley face animation
 

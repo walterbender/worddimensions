@@ -39,7 +39,6 @@ class Deck:
         """ Create the deck of cards. 'lists' is either a list of
             words or paths"""
 
-        print lists
         # If level is 'simple', only generate one fill type
         shape_range = SHAPES
         color_range = COLORS
@@ -85,20 +84,23 @@ class Deck:
                 sprites=sprites, attributes=[shape, color, num, fill],
                 file_path=lists[index])
         else:
+            # Fixme: Work-around for i18n
+            word_picture_lists = [['mouse', 'cat', 'dog',],
+                                  ['cheese', 'apple', 'bread',],
+                                  ['moon','sun','earth']]
+
             # shape == category: animal, food, orb
             # color == color
             # num == which in category
-            # fill == ???
+            # fill == picture only/picture and word/word only
             if fill == 0:
                 path = os.path.join(bundle_path, 'pictures',
-                                    lists[shape][num] + '.png')
+                                    word_picture_lists[shape][num] + '.png')
             elif fill == 1:
                 path = os.path.join(bundle_path, 'pictures',
-                                    lists[shape][num] + '-gray.png')
+                                    word_picture_lists[shape][num] + '-gray.png')
             else:
                 path = None
-            print i, shape, color, num, fill, lists[shape][num]
-            print path
             self.cards[i].create(
                 generate_word_card(shape, color, num, fill, self._scale,
                                    path=path),
