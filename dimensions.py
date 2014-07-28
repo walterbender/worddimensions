@@ -176,7 +176,7 @@ class DimensionsMain:
         self.win.show_all()
 
         # Join the activity
-        self.vmw = Game(canvas)
+        self.vmw = Game(canvas, card_type=MODE)
         self.vmw.win = self.win
         self.vmw.activity = self
         self.vmw.card_type = MODE
