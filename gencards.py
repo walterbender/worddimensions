@@ -862,6 +862,26 @@ def generate_word_card(shape, color, number, fill, scale, path=None):
     return svg_string
 
 
+def generate_custom_card(shape, color, number, fill, scale, path=None):
+    svg = SVG()
+    svg._set_scale(scale)
+    svg._set_colors(["#A0A0A0", COLOR_PAIRS[color][1]])
+    svg._set_stroke_width(3.0)
+    svg_string = svg._header()
+    if path is not None:
+        if number == 0:
+            svg_string += svg._svg_image(38, 38, 42.5, 18.5, path)
+        elif number == 1:
+            svg_string += svg._svg_image(38, 38, 22.5, 18.5, path)
+            svg_string += svg._svg_image(38, 38, 62.5, 18.5, path)
+        else:
+            svg_string += svg._svg_image(38, 38, 2.5, 18.5, path)
+            svg_string += svg._svg_image(38, 38, 42.5, 18.5, path)
+            svg_string += svg._svg_image(38, 38, 82.5, 18.5, path)
+    svg_string += svg._footer()
+    return svg_string
+
+
 def generate_match_card(scale):
     svg = SVG()
     svg._set_scale(scale)

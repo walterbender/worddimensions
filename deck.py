@@ -1,4 +1,4 @@
-#Copyright (c) 2009,10 Walter Bender
+#Copyright (c) 2009-14 Walter Bender
 
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -12,11 +12,18 @@
 import os
 from random import randrange
 
-from constants import HIGH, MEDIUM, LOW, FILLS, SHAPES, NUMBER, COLORS, \
-                      COLOR_PAIRS
-from card import Card
-from gencards import generate_pattern_card, generate_number_card, \
-                     generate_word_card
+from gi.repository import GdkPixbuf
+
+from constants import (HIGH, MEDIUM, LOW, FILLS, SHAPES, NUMBER, COLORS,
+                       COLOR_PAIRS)
+from gencards import (generate_pattern_card, generate_number_card,
+                      generate_word_card, generate_custom_card)
+
+try:
+    from sugar3.activity import activity
+    ACTIVITY_ROOT = os.path.join(activity.get_activity_root(), 'instance')
+except:
+    ACTIVITY_ROOT = os.path.expanduser('~')
 
 try:
     from sugar3.activity import activity
@@ -24,7 +31,6 @@ try:
 except:
     bundle_path = os.path.expanduser(os.path.join('~', 'Activities',
                                                   'WordDimensions.activity'))
-
 
 class Deck:
     """ Class for defining deck of card """
@@ -34,10 +40,28 @@ class Deck:
         self.index = 0
         self._scale = scale
         self._number_of_cards = 0
+        self._image_paths = [None, None, None, None, None, None, None, None,
+                             None]
 
     def create(self, sprites, card_type, numbers_type, lists, level=HIGH):
         """ Create the deck of cards. 'lists' is either a list of
             words or paths"""
+
+        # Copy images into root/instance as squares
+        for i, object in enumerate(lists):
+            if object is not None and \
+               not isinstance(object, (str, unicode, list)):
+                pixbuf = GdkPixbuf.Pixbuf.new_from_file(
+                    object.file_path)
+                size = min(pixbuf.get_width(), pixbuf.get_height())
+                x = int((pixbuf.get_width() - size) / 2)
+                y = int((pixbuf.get_height() - size) / 2)
+                newpixbuf = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,
+                                                 True, 8, size, size)
+                pixbuf.copy_area(x, y, size, size, newpixbuf, 0, 0)
+                path = os.path.join(ACTIVITY_ROOT, 'custom-image-%d.png' % i)
+                newpixbuf.savev(path, 'png', [], [])
+                self._image_paths[i] = path
 
         # If level is 'simple', only generate one fill type
         shape_range = SHAPES
@@ -75,14 +99,19 @@ class Deck:
                     shape, color, num, fill, numbers_type, self._scale),
                 sprites=sprites, attributes=[shape, color, num, fill])
         elif card_type == 'custom':
+            path = None
             if len(lists) == 9:
-                index = shape * 3 + num
+                index = shape * 3 + fill
+                path = self._image_paths[index]
             else:
                 index = i
+                if lists[index] is not None:
+                    path = lists[index].file_path.encode('ascii', 'ignore')
             self.cards[i].create(
-                generate_word_card(shape, color, num, fill, self._scale),
-                sprites=sprites, attributes=[shape, color, num, fill],
-                file_path=lists[index])
+                generate_custom_card(shape, color, num, fill, self._scale,
+                                     path=path),
+                sprites=sprites, attributes=[shape, color, num, fill])
+                #, file_path=lists[index])
         else:
             # Fixme: Work-around for i18n
             word_picture_lists = [['mouse', 'cat', 'dog',],
@@ -111,16 +140,6 @@ class Deck:
             elif fill == 1:
                 self.cards[i].spr.set_label(lists[shape][num])
                 self.cards[i].spr.set_label_color('white')
-            '''
-            if fill == 0:
-                self.cards[i].spr.set_label_color(COLOR_PAIRS[color][0])
-            elif fill == 1:
-                self.cards[i].spr.set_font('Sans Bold')
-                self.cards[i].spr.set_label_color(COLOR_PAIRS[color][1])
-            elif fill == 2:
-                self.cards[i].spr.set_font('Sans Italic')
-                self.cards[i].spr.set_label_color(COLOR_PAIRS[color][1])
-            '''
         return i + 1
 
     def shuffle(self):

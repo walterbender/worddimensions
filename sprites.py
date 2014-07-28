@@ -142,6 +142,7 @@ class Sprites:
         else:
             self.cr = cr
         if cr is None:
+            # print 'sprites.redraw_sprites: no Cairo context'
             return
         for spr in self.list:
             if area == None:
@@ -346,6 +347,7 @@ class Sprite:
         if cr is None:
             cr = self._sprites.cr
         if cr is None:
+            # print 'sprite.draw: no Cairo context.'
             return
         for i, img in enumerate(self.cached_surfaces):
             cr.set_source_surface(img, self.rect[0] + self._dx[i],
@@ -467,5 +469,5 @@ class Sprite:
             else:
                 return(-1, -1, -1, -1)
         except IndexError:
-            print "Index Error: %d %d" % (len(array), offset)
+            # print "Index Error: %d %d" % (len(array), offset)
             return(-1, -1, -1, -1)
