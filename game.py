@@ -19,6 +19,7 @@ from gi.repository import GObject
 from gi.repository import Pango
 
 import os
+import glob
 
 from gettext import gettext as _
 
@@ -46,7 +47,11 @@ from gencards import (generate_match_card, generate_frowny_shape,
                       generate_label, generate_background)
 
 CURSOR = '█'
-
+SMILE_LAYER = 10000
+ANIMATION_LAYER = 20000
+BACKGROUND_LAYER = 0
+DRAG_LAYER = 5000
+SELECT_LAYER = 2000
 
 def _distance(pos1, pos2):
     ''' simple distance function '''
@@ -142,6 +147,7 @@ class Game():
         self._matches_on_display = False
         self._smiley = []
         self._frowny = []
+        self._robot_card = None
         self._help = []
         self._help_timeout_id = None
         self._stop_help = True
@@ -200,18 +206,14 @@ class Game():
         else:
             self.backgrounds[1].hide()
 
-        if self._sugar:
-            self._old_cursor = self.activity.get_window().get_cursor()
-            self.activity.get_window().set_cursor(Gdk.Cursor.new(
-                Gdk.CursorType.WATCH))
-        GObject.idle_add(self._complete_loading)
-
-    def _complete_loading(self):
         self._cards = []
         for i in range(DECKSIZE):
             self._cards.append(Card(scale=self._scale))
 
         self.deck = Deck(self._cards, scale=self._scale)
+
+        if self._sugar:
+            self._old_cursor = self.activity.get_window().get_cursor()
 
         for i in range(CARDS_IN_A_MATCH):
             self.clicked.append(Click())
@@ -220,7 +222,7 @@ class Game():
                 generate_match_card(self._scale), sprites=self._sprites)
             self._match_area[-1].spr.move(self.grid.match_to_xy(i))
 
-        for i in range(30):
+        for i in range(15):
             scale = self._scale * (i / 2 + 2)
             self._smiley.append(Card(scale=scale))
             self._smiley[-1].create(
@@ -229,9 +231,9 @@ class Game():
             y = self._smiley_xy()[1] - i / 2 * int(self._card_height / 2)
             self._smiley[-1].spr.move((int(x), int(y)))
             if i == 0:
-                self._smiley[-1].spr.set_layer(10000)
+                self._smiley[-1].spr.set_layer(SMILE_LAYER)
             else:
-                self._smiley[-1].spr.set_layer(20000)
+                self._smiley[-1].spr.set_layer(ANIMATION_LAYER)
             self._smiley[-1].spr.hide()
 
         # A different frowny face for each type of error
@@ -253,6 +255,10 @@ class Game():
         self._frowny[-1].spr.move(self._smiley_xy())
         self._hide_frowny()
 
+        if self._sugar:
+            self._generate_robot_card(self._scale * 2)
+            self._robot_card.spr.hide()
+
         size = min(self._width, self._height)
         self._label = Card()
         self._label.create(generate_label(size, LABELH * 4),
@@ -269,12 +275,11 @@ class Game():
         self._labels = {'deck': '', 'match': '', 'clock': '', 'status': ''}
 
         Gdk.Screen.get_default().connect('size-changed', self._configure_cb)
-        if self._sugar:
-            self.activity.get_window().set_cursor(self._old_cursor)
 
     def _smiley_xy(self):
         x = int(Gdk.Screen.width() / 2) - self._card_width + DEFAULT_SPACING
-        y = int(Gdk.Screen.height() / 2) - self._card_height + DEFAULT_SPACING
+        y = int(Gdk.Screen.height() / 2) - self._card_height - \
+            DEFAULT_SPACING * 2
         return ((x, y))
 
     def _configure_cb(self, event):
@@ -286,11 +291,11 @@ class Game():
         if self._width < self._height:
             self.portrait = True
             self.backgrounds[0].hide()
-            self.backgrounds[1].set_layer(0)
+            self.backgrounds[1].set_layer(BACKGROUND_LAYER)
         else:
             self.portrait = False
             self.backgrounds[1].hide()
-            self.backgrounds[0].set_layer(0)
+            self.backgrounds[0].set_layer(BACKGROUND_LAYER)
 
         size = min(self._width, self._height)
         self._label_time.spr.move((Gdk.Screen.width() - size - LABELH, LABELH))
@@ -305,6 +310,7 @@ class Game():
             self._smiley[i].spr.move((x, y))
         for c in self._frowny:
             c.spr.move(self._smiley_xy())
+        self._robot_card.spr.move(self._smiley_xy())
 
         for i, c in enumerate(self.clicked):
             if c.spr is not None:
@@ -336,10 +342,10 @@ class Game():
         self._matches_on_display = False
         self._failure = None
 
-        self._hide_frowny()
-
         for card in self._smiley:
             card.spr.hide()
+        self._hide_frowny()
+        self._robot_card.spr.hide()
 
         if self._saved_state is not None:
             _logger.debug('Restoring state: %s' % (str(self._saved_state)))
@@ -419,6 +425,7 @@ class Game():
 
         self._hide_smiley()
         self._hide_frowny()
+        self._robot_card.spr.hide()
 
         self._sprites.draw_all()
 
@@ -586,6 +593,12 @@ class Game():
         # Turn off help animation
         if not self._stop_help:
             self._stop_help = True
+            if self.portrait:
+                self.backgrounds[1].set_layer(BACKGROUND_LAYER)
+            else:
+                self.backgrounds[0].set_layer(BACKGROUND_LAYER)
+            self._timer_reset()
+            self._update_labels()
             return True
 
         # Don't do anything if the game is over
@@ -607,6 +620,11 @@ class Game():
 
         # Hide a smiley
         if spr == self._smiley[0].spr:
+            spr.hide()
+            return True
+
+        # Hide a robot card
+        if spr == self._robot_card.spr:
             spr.hide()
             return True
 
@@ -660,6 +678,7 @@ class Game():
         self._matches_on_display = False
         self._hide_clicked()
         self._smiley[0].spr.hide()
+        self._robot_card.spr.hide()
         if share and self._sharing():
             self.activity._send_event('r:')
 
@@ -686,7 +705,7 @@ class Game():
             return True
         dx = x - self._drag_pos[0]
         dy = y - self._drag_pos[1]
-        self._press.set_layer(5000)
+        self._press.set_layer(DRAG_LAYER)
         self._press.move_relative((dx, dy))
         self._drag_pos = [x, y]
 
@@ -704,7 +723,7 @@ class Game():
             self._drag_pos = [0, 0]
             return True
 
-        self._press.set_layer(2000)
+        self._press.set_layer(SELECT_LAYER)
 
         # Determine if it was a click, a drag, or an aborted drag
         d = _distance((x, y), (self._start_pos[0], self._start_pos[1]))
@@ -769,7 +788,7 @@ class Game():
             if i is None:
                 spr.move((self._start_pos))
             else:
-                spr.set_layer(5000)
+                spr.set_layer(DRAG_LAYER)
                 self.grid.grid[self.grid.spr_to_grid(spr)] = None
                 self.grid.display_match(spr, i)
 
@@ -878,9 +897,9 @@ class Game():
             # If we have three cards selected, test for a match.
             self._test_for_a_match()
             if self._matches_on_display:
-                self._smiley[0].spr.set_layer(10000)
+                self._smiley[0].spr.set_layer(SMILE_LAYER)
             elif not self._the_game_is_over and self._failure is not None:
-                self._frowny[self._failure].spr.set_layer(10000)
+                self._frowny[self._failure].spr.set_layer(SMILE_LAYER)
         return
 
     def _none_in_clicked(self):
@@ -939,24 +958,21 @@ class Game():
 
     def _game_over(self):
         ''' Game is over when the deck is empty and no more matches. '''
+        self._hide_frowny()
+        self._robot_card.spr.hide()
+        self._update_labels()
+        self.set_label('deck', '')
+        self.set_label('clock', '')
         if self.deck.empty() and not self._find_a_match():
-            self._hide_frowny()
-            self._update_labels()
-            self.set_label('deck', '')
-            self.set_label('clock', '')
             self.set_label('status', '%s\n(%d:%02d)' %
                            (_('Game over'), int(self.total_time / 60),
                             int(self.total_time % 60)))
             self._smiley[0].show_card()
             self.animation_timeout_id = GObject.timeout_add(
-                200, self._show_animation, 0)
+                100, self._show_animation, 0)
             self._the_game_is_over = True
         elif self.grid.cards_in_grid() == DEAL + 3 \
                 and not self._find_a_match():
-            self._hide_frowny()
-            self._update_labels()
-            self.set_label('deck', '')
-            self.set_label('clock', '')
             self.set_label('status', _('unsolvable'))
             self._the_game_is_over = True
         return self._the_game_is_over
@@ -1097,6 +1113,9 @@ class Game():
 
     def set_label(self, label, s):
         ''' Update the toolbar labels '''
+        if not hasattr(self, '_labels'):
+            return
+
         if label in self._labels:
             self._labels[label] = s
 
@@ -1116,7 +1135,7 @@ class Game():
                 self.clicked[j].spr = self.deck.index_to_card(i).spr
                 self.clicked[j].spr.move(self.grid.match_to_xy(j))
                 self.clicked[j].pos = self.grid.match_to_xy(j)
-                self.clicked[j].spr.set_layer(2000)
+                self.clicked[j].spr.set_layer(SELECT_LAYER)
             j += 1
         self.process_selection(None)
 
@@ -1141,6 +1160,11 @@ class Game():
         ''' Display of seconds since start_time. '''
         seconds = int(GObject.get_current_time() - self.start_time)
         self.set_label('clock', str(seconds))
+
+        if seconds == 5:
+            if self._matches_on_display:
+                self.clean_up_match(share=False)
+
         if self.robot and self.robot_time < seconds:
             self._find_a_match(robot_match=True)
         else:
@@ -1156,9 +1180,9 @@ class Game():
     def _show_animation(self, i):
         ''' Show smiley animation '''
         if i < len(self._smiley) - 1:
-            self._smiley[i].show_card(layer=20000)
+            self._smiley[i].show_card(layer=ANIMATION_LAYER)
             self.animation_timeout_id = GObject.timeout_add(
-                100, self._show_animation, i + 1)
+                50, self._show_animation, i + 1)
         else:
             for card in self._smiley:
                 card.spr.hide()
@@ -1201,6 +1225,7 @@ class Game():
                     # Stop animations before moving robot match
                     self.grid.stop_animation = True
                     self._robot_match(i)
+                    self._robot_card.spr.set_layer(SMILE_LAYER)
                 return True
         return False
 
@@ -1217,7 +1242,7 @@ class Game():
             self.grid.grid[i[j]] = None
         self.robot_matches += 1
         self._test_for_a_match()
-        self._smiley[0].spr.set_layer(100)
+        self._smiley[0].spr.set_layer(BACKGROUND_LAYER)
         self._matches_on_display = True
 
     def _match_check(self, cardarray, card_type):
@@ -1377,24 +1402,62 @@ class Game():
             return False
         return True
 
-    def help_animation(self):
-        ''' Simple explanatory animation at start of play '''
+    def _generate_robot_card(self, scale):
+        ''' Sugar only '''
         from sugar3.activity import activity
 
+        w = int(125 * scale)
+        h = int(75 * scale)
+        x, y = self._smiley_xy()
+        robot_target = os.path.join(activity.get_bundle_path(),
+                                    'images', 'robot-card.svg')
+        pixbuf = svg_str_to_pixbuf(svg_from_file(robot_target), w, h)
+        self._robot_card = Card(scale=scale)
+        self._robot_card.spr = Sprite(self._sprites, x, y, pixbuf)
+        self._robot_card.spr.set_layer(SMILE_LAYER)
+
+    def _get_help_files(self):
+        from sugar3.activity import activity
+
+        help_target = os.path.join(activity.get_bundle_path(),
+                                   'images', 'help-*.png')
+        help_files = glob.glob(help_target)
+        return sorted(help_files)
+
+    def help_animation(self):
+        ''' Simple explanatory animation at start of play '''
+        if not self._sugar:
+            return
+
         self._played_animation = True
-        for i in range(22):
-            path = os.path.join(activity.get_bundle_path(),
-                                'images', 'help-%d.svg' % i)
-            svg_str = svg_from_file(path)
-            pixbuf = svg_str_to_pixbuf(svg_str, int(self._width / 2),
-                                       int(self._height / 2))
-            self._help.append(Sprite(self._sprites, int(self._width / 4),
-                                     int(self._height / 4), pixbuf))
+
+        self.activity.get_window().set_cursor(Gdk.Cursor.new(
+            Gdk.CursorType.WATCH))
+
+        GObject.idle_add(self._complete_loading)
+
+    def _complete_loading(self):
+        if self.portrait:
+            self.backgrounds[1].set_layer(SMILE_LAYER)
+        else:
+            self.backgrounds[0].set_layer(SMILE_LAYER)
+
+        h = int(650 * Gdk.Screen.height() / 900.)
+        w = int(550 * Gdk.Screen.width() / 1200.)
+        for help_file in self._get_help_files():
+            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_size(help_file, w, h)
+            self._help.append(Sprite(self._sprites,
+                                     int((self._width - w) / 2),
+                                     int((self._height - h) / 2),
+                                     pixbuf))
             self._help[-1].hide()
 
         self._help_index = 0
         self._stop_help = False
-        self._help[self._help_index].set_layer(5000)
+        self._help[self._help_index].set_layer(ANIMATION_LAYER)
+
+        self.activity.get_window().set_cursor(self._old_cursor)
+
         self._help_timeout_id = GObject.timeout_add(2000, self._help_next)
 
     def _help_next(self):
@@ -1405,11 +1468,12 @@ class Game():
             return
         self._help_index += 1
         self._help_index %= len(self._help)
-        self._help[self._help_index].set_layer(5000)
-        if self._help_index in [0, 9, 10, 20, 21]:
-            self._help_timeout_id = GObject.timeout_add(2000, self._help_next)
+        self._help[self._help_index].set_layer(ANIMATION_LAYER)
+        if self._help_index in [0, 13, 25, 30]:
+            pause = 2500
         else:
-            self._help_timeout_id = GObject.timeout_add(1000, self._help_next)
+            pause = 750
+        self._help_timeout_id = GObject.timeout_add(pause, self._help_next)
 
 
 class Permutation:
